@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
@@ -85,6 +87,25 @@ public class MainActivity extends AppCompatActivity implements MulticastService.
         });
 
         updateInputHint();
+
+        EditText et_port = findViewById(R.id.et_port);
+        et_port.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                String string = s.toString();
+                multicastService.setMulticastPort(Integer.parseInt(string));
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+        });
     }
 
     private void setupMulticastService() {
@@ -211,6 +232,30 @@ public class MainActivity extends AppCompatActivity implements MulticastService.
 
         // Check format: space-separated hex bytes
         String[] hexBytes = hexString.trim().split("\\s+");
+        if (hexBytes.length < 7) {
+            Toast.makeText(this, "数据不符合要求", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if ("55".equals(hexBytes[0]) && "AA".equals(hexBytes[1])) {
+            try {
+                String endHexByte = hexBytes[(hexBytes.length - 1)];
+                int endInt = Integer.parseInt(endHexByte, 16);
+                int startTotal = 0;
+                for (int i = 2; i < hexBytes.length - 1; i++) {
+                    startTotal += Integer.parseInt(hexBytes[i], 16);
+                }
+                if (endInt != startTotal) {
+                    Toast.makeText(this, "数据不符合要求", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "数据不符合要求", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        }else {
+            Toast.makeText(this, "数据不符合要求", Toast.LENGTH_SHORT).show();
+            return false;
+        }
         for (String hexByte : hexBytes) {
             // Each hex byte should be 1-2 characters and valid hex
             if (hexByte.length() < 1 || hexByte.length() > 2) {
